@@ -58,7 +58,7 @@ if __name__ == "__main__":
     data = []
     for row in train:
         Y.append(row[1])
-        X.append(row[-21:])
+        X.append(row[-11:])
     X = np.asmatrix(X).astype(np.float)
     Y = np.asmatrix(Y).astype(np.float).transpose()
 
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     ytest = []
     for row in test:
         ytest.append(row[1])
-        xtest.append(row[-21:])
+        xtest.append(row[-11:])
     xtest = np.asmatrix(xtest).astype(np.float)
     ytest = np.asmatrix(ytest).astype(np.float).transpose()
 
