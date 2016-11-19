@@ -83,8 +83,19 @@ if __name__ == "__main__":
     print("Mean squared error: %.2f"
           % np.mean((np.squeeze(np.asarray(diff))) ** 2))
 
-    plt.plot(ytest, pred, color='blue')
-    plt.xlabel('Actual Value')
-    plt.ylabel('Prediction')
+    func_x = []
+    for i in xtest:
+        index = np.nonzero(i)
+        func_x.append(index[1][0])
+
+    plt.scatter(func_x, pred, color='red', label="Prediction")
+    plt.scatter(func_x, ytest, color='blue', label="Actual Value")
+
+    #plt.plot(ytest, pred, color='blue')
+    plt.xlabel('Functions')
+    plt.ylabel('Run Time')
+    plt.title('MSB1_10_100 dataset')
+
+    plt.legend(loc=4)
 
     plt.show()
