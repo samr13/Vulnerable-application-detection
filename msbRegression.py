@@ -70,7 +70,8 @@ if __name__ == "__main__":
     xtest = np.asmatrix(xtest).astype(np.float)
     ytest = np.asmatrix(ytest).astype(np.float).transpose()
 
-    regr = linear_model.LinearRegression()
+    #regr = linear_model.LinearRegression()
+    regr = linear_model.BayesianRidge()
     regr.fit(X, Y)
     score = regr.score(xtest, ytest)
     print("Variance Score:", score)
