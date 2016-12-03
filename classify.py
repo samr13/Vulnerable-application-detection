@@ -17,6 +17,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 import matplotlib.pyplot as plt
 
+# data preprocessing
 df = pd.read_csv("./CSV/MSB1_10_100.csv")
 train, test = train_test_split(df, train_size=0.8)
 
@@ -44,6 +45,7 @@ xtrain = np.array(df_F)
 df_F = test[['f0', 'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9']]
 xtest = np.array(df_F)
 
+#classifiers
 names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Gaussian Process",
          "Decision Tree", "Random Forest", "Neural Net", "AdaBoost",
          "Naive Bayes", "QDA"]
@@ -60,6 +62,7 @@ classifiers = [
     GaussianNB(),
     QuadraticDiscriminantAnalysis()]
 
+#train model
 i = 1
 for name, clf in zip(names, classifiers):
     clf.fit(xtrain, ytrain)
