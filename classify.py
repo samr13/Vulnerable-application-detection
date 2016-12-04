@@ -81,6 +81,6 @@ for name, clf in zip(names, classifiers):
     plt.scatter(ind, pred, color='blue', label="Prediction")
     plt.title(name)
     i += 1
-    plt.show()
+    # plt.show()
     plt.savefig('./Results/'+name+'.png')
 

@@ -5,7 +5,11 @@ from sklearn.cluster import DBSCAN
 from sklearn import metrics
 from sklearn.preprocessing import StandardScaler
 
+# df = pd.read_csv("./CSV/RegEx_20_10_1_101.csv")
+# df = pd.read_csv("./CSV/RegEx_150_10_2_10011.csv")
 df = pd.read_csv("./CSV/RegEx_200_10_2_101011.csv")
+# df = pd.read_csv("./CSV/MSB1_10_100.csv")
+
 
 df_T = df[['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10']]
 df['mean'] = (df['T1'] + df['T2'] + df['T3'] + df['T4'] + df['T5'] + df['T6'] + df['T7'] + df['T8'] + df['T9'] + df[
