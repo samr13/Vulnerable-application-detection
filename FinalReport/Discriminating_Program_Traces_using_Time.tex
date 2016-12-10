@@ -1,0 +1,297 @@
+\documentclass{article}
+
+\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{xcolor,pgf,tikz,pgflibraryarrows,pgffor,pgflibrarysnakes}
+
+\usetikzlibrary{fit} % fitting shapes to coordinates
+\usetikzlibrary{backgrounds} % drawing the background after the foreground
+
+\tikzstyle{background}=[rectangle,fill=gray!10, inner sep=0.1cm, rounded corners=0mm]
+    
+\usepgflibrary{shapes}
+\usetikzlibrary{snakes,automata}
+
+
+\usepackage{tikz}
+\tikzstyle{nloc}=[draw, text badly centered, rectangle, rounded corners, minimum size=2em,inner sep=0.5em]
+\tikzstyle{loc}=[draw,rectangle,minimum size=1.4em,inner sep=0em]
+\tikzstyle{trans}=[-latex, rounded corners]
+\tikzstyle{trans2}=[-latex, dashed, rounded corners]
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{example}{Example}
+\usetikzlibrary{automata,positioning}
+\newcommand{\msot}{\textnormal{MSOT}} 
+\newcommand{\twst}{\textnormal{2WST}}
+\newcommand{\la}{\ensuremath{{\mathrm{la}}}}
+\newcommand{\nsst}{\wnsst{}}
+\newcommand{\wsst}{\textnormal{SST}} 
+\newcommand{\wnsst}{\textnormal{NSST}} 
+\usepackage{mathtools}
+\usepackage{graphicx}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{subcaption}
+\makeatletter
+\def\BState{\State\hskip-\ALG@thistlm}
+\makeatother
+\usetikzlibrary{shapes.geometric}
+\usetikzlibrary{shapes.arrows}
+\usepackage{array}
+\usepackage{stmaryrd}
+\DeclareCaptionFormat{myformat}{#3}
+\captionsetup[algorithm]{format=myformat}
+
+\begin{document}
+\title{Discriminating Program Traces using Time}
+\author{Saeid Tizpaz Niari, Shyam Sundar Ramamoorthy, Yue Zhang \\ Final Report of Machine Learning (CSCI 5622)  \\ Fall 2016}
+\date{}
+\maketitle
+
+\section{Introduction}
+Different control-flow paths in a program can have varying execution times.
+Such observable differences in execution times may be explainable by
+information about the program internals, such as whether or not a given function or
+functions were called. 
+How can a software developer (or security analyst)
+determine what internals may or may not explain the varying
+execution times of the program? In this project, we consider the problem
+of helping such a developer 
+or analyst to identify such explanations. 
+
+Given a set of execution traces with observable execution times grouped
+into a finite set of labels, a \emph{discriminant} (or a classifier model) is
+a map relating each label to a set of features. Such a discriminant model can then be used,
+for example, to explain timing differences among program traces based on
+its internal features like method calls.  In other words, this problem looks for
+distinguishing features among traces that result in
+varying execution times.
+
+Crucially, once we can explain the timing
+differences in terms of properties of traces (i.e., control-flow paths through
+the program), the analyst can use the explanation to diagnose the possible
+timing side-channel and potentially find a fix for the vulnerability. 
+
+Our overall approach is to first obtain a set of execution traces
+with information recorded about internal features of the input program
+along with corresponding execution times. We consider two main
+approaches to explain time differences based on the internal features: \\
+1- We cluster these training traces based on their overall execution times
+to bin them into timing labels. Then, we learn a decision tree discriminant
+model from these traces to capture what is common amongst the traces with the
+same timing labels and what is different between traces with different labels. \\
+2- As the time of execution is a continuous domain (time $\in$ $R$), we can
+naturally use regression trees to find discriminant features of the input
+program and explain the timing differences. \\
+Moreover, we compare these
+two approaches and explain which one can potentially give better discriminant. 
+Finally, we apply other classifier models and measure their accuracy and performance.
+
+We present two case studies in identifying and debugging timing
+side-channel shown our tools to
+perform label clustering and decision tree-discriminant learning. We show that
+the decision trees are useful for explaining the timing
+differences amongst trace sets and performing this debugging task.
+
+Some technicalities of our approach include that we need to execute both an
+instrumented and uninstrumented version of the program of interest: a trace of
+the instrumented program is needed to determine which functions are called during
+the trace execution, while the execution time of interest is for an uninstrumented
+program. Since timing observations are noisy due to many sources of
+non-determinism, we also provide this option that each trace is associated with a
+\emph{distribution} over the labels.
+For instance, a trace may have a label $\ell_1$ with probability $0.9$
+and label $\ell_2$ with probability $0.1$.
+
+\section{Motivation Example - existing user enumeration}
+
+
+\section{Motivation Example - SnapBuddy (social network)}
+In this section, we demonstrate another example to show that the tool can be useful in
+identifying timing side-channel vulnerabilities
+and suggesting ways to fix them.
+We use an application called
+SnapBuddy as an example. SnapBuddy is a Java application with 3,071 methods,
+implementing a mock social network in which
+each user has their own page with a photograph. Figure \ref{snapbuddy-1} shows
+a screenshot of SnapBuddy application. Each user logs into system observes the
+list of his/her friends, can add new friends, and overview public profile pages of
+other users. 
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=1\textwidth]{snapbuddy-1}
+    \caption{A screenshot of SnapBuddy web application}
+    \label{snapbuddy-1}
+\end{figure}
+
+\subsubsection*{Identifying a Timing Side-Channel with Clustering.}
+As we mention, every user can issue download requests to the
+public profile page of other uses in the system. The public profile
+includes the users' public information and their public profile page. 
+As an analyst, we record the time to download public pages of all users
+in the system. Figure~\ref{fig:sbtime} shows a scatter plot of the running times of
+various traces with each trace represented by a point in the figure. The
+running times are clustered into $6$ different groups using a
+standard $k$-means clustering algorithm and shown using different
+colors. We see that for some users, the download times were roughly $15$ seconds, whereas for
+some others they were roughly $7.5$ seconds. This significant time differential suggests a
+potential timing side-channel if the difference can be correlated with sensitive
+program state and thus this differential should be investigated further with the tool.
+
+To see how such a time differential could be a timing side-channel,
+let us consider an attacker that
+(a) downloads the public profile pages of all users and learns each download time,
+and (b) can observe timing between packets by sniffing the
+network traffic between legitimate users.
+If the attacker observes user Alice downloading the page of another user whose identity
+is supposed to be a secret
+and sees that the download took approximately $7.5$ seconds, the attacker can infer
+that Alice downloaded the page of one of the six users corresponding
+to the six red squares in Figure~\ref{fig:sbtime}. The timing
+information leak thus helped the attacker narrow down the
+possibilities from hundreds of users to six.
+
+\subsubsection*{Explaining Timing Side-Channels with Decision Tree Learning.}
+Recall that the analyst downloaded pages
+of all the users. Now the same download queries are executed over an
+instrumented version of the SnapBuddy server to record the number of
+times each method in the application is called by the trace. As a
+result, we obtain a
+set of traces with their (uninstrumented) overall running times and their
+sequence of method calls.
+
+\begin{figure}[t]
+\centering
+\begin{minipage}[b]{0.47\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{SnapBuddy_scatter_2}
+  \caption{Cluster running times from the SnapBuddy to produce labels. The scatter plot shows a differential corresponding to a possible timing side-channel.}
+  \label{fig:sbtime}
+\end{minipage}\hfill
+\begin{minipage}[b]{0.50\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{SnapBuddy_DecisionTree_1}
+  \caption{Snippet of a decision-tree discriminant learned from SnapBuddy traces using the timing labels from Figure~\ref{fig:sbtime}.}
+  \label{fig:sbdectree}
+\end{minipage}
+\vspace{-2em}
+\end{figure}
+
+Then tool uses the
+standard \emph{CART} decision tree learning
+algorithm to infer a decision tree that
+succinctly represents a discriminant
+using atomic predicates that characterize
+whether or not the trace invoked a particular method (shown in Figure~\ref{fig:sbdectree}).
+For instance, the cluster representing the longest running time (around $15$ seconds) is
+discriminated by calling functions of \texttt{snapservice.model.Filter.filter} and 
+\texttt{image.OilFilter.filterPixels}, indicating that the two methods
+are both invoked by the trace. Likewise, the cluster representing the
+running time around $7.5$ seconds is discriminated by the
+property \texttt{snapservice.model.Filter.filter} and
+not \texttt{image.OilFilter.filterPixels} and
+\texttt{image.ChromeFilter.filter}, indicating that
+\texttt{image.OilFilter.filterPixels} must not invoked
+while the other two are.
+
+The analyst might now suspect what is going on: the timing
+differences are caused by the filters that each user chooses to apply
+to their picture. %To illustrate the filters, Figure~\ref{figure2-1}
+%shows a user's image transformed by the Chrome filter (middle) and Oil
+%filter (right).
+Note that the analyst running the tool did not need to
+know that the filters are important for causing this time differential, or even that
+they existed. The tool discovers them simply because the trace
+contains all method calls, and the decision tree learning algorithm
+produces a useful discriminant.
+
+A possible fix now suggests itself: make sure that the execution of
+each type of filter takes the same amount of time.
+
+\section{Methodology}
+In this section, we explain the steps and process to produce a discriminant
+decision tree model using the example of SnapBuddy described in the previous
+section. Figure \ref{Methodology} shows the steps of processing on the SnapBuddy
+example. As we described in the previous sections, the records (traces ) of data sets from
+input applications include time measurements (uninstrumented version) and function
+calls (instrumented version using Soot Framework) under the same user input. As noted before,
+we are interested in seeing whether the key
+methods that explain the differences in execution time can be pinpointed. Thus, we
+consider attributes corresponding to the called methods in a trace. This data set for SnapBuddy
+is the input for the process model of Figure \ref{Methodology} (note that the Figure shows
+only part of function calls). 
+Let's look at the process step by step: \\
+1. \smallskip\textit{Clustering and Class Label: Total Execution Time Ranges.}
+To identify the most salient attributes, we fix a small number of possible
+labels, and cluster traces according to total execution time. 
+Each cluster is defined by a corresponding time interval. The clusters and
+their intervals are learned using $k$-means clustering
+algorithm. In this case, we fix $k$=6 and cluster the data set as shown in the
+result of $step.1$. We consider the execution time for each trace to be a
+random variable and assume a normal distribution.
+We obtain the mean and variance through $10$ repeated measurements.
+We apply clustering to the mean execution times of each trace to
+determine the class labels. A class label (or cluster) can be identified by the mean of
+all execution times belonging to that cluster. Then, considering the
+class labels sorted in increasing order, we define the lower boundary
+of a bucket for classifying new traces by averaging the maximum
+execution time in the previous bucket and the minimum execution time
+in this bucket (and analogously for the upper boundary). 
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=1\textwidth]{Methodology}
+    \caption{An overall view of the tool's process for clustering and classification of input data set}
+    \label{Methodology}
+\end{figure}
+\\2. \smallskip\textit{Estimation of trace weights.}
+Given a set of time ranges, we define a weighted labeling of traces
+that permits a trace to be assigned to different clusters with different weights.
+For a given trace, the weights to clusters are determined by the
+probability mass belong to the time range of the cluster.  For
+example, consider the execution time distribution of a sample trace t1
+(drawn from our SnapBuddy example discussed below) shown in
+this step. This distribution straddles the
+cluster$\_$0 and cluster$\_$1 boundary.  In this case, we assign trace
+t1 to both cluster$\_$0 (black area) and cluster$\_$1 (blue area) with
+weights according to their probability mass in their respective
+regions. In this example, trace t1 is assigned
+to cluster$\_$0 with weight 22 and cluster$\_$1 with weight 78. Note
+that this provides a smoother interpretation of the class labels
+rather than, for example, assigning the most likely label for each
+trace. Please note that the tool can also handle the case where
+there is just one time measurement, and each trace belongs to a
+fix cluster. \\
+3. \smallskip\textit{data set of trace labels and weights.}
+Given that $step.1$ will assign labels on traces and $step.2$
+calculate the weight of the trace to belong to different labels,
+we can obtain the new data set which is the input for classification step. 
+We keep the function call features like the original input data set, but we
+find labels and weights for each trace as described in $step.2$ and $step.3$
+and generate the data set as shown in this step for SnapBuddy. \\
+4. \smallskip\textit{Decision Tree Learning.}
+From a training set with this weighted labeling, we apply the weighted
+decision tree learning algorithm CART.
+We use the tool chain both for clustering in the time domain as described
+above to determine the class labels and weights of each trace and for
+learning the classification model. In addition, we use group k-fold cross
+validation procedure to find accuracy. 
+
+\section{Estimation of Cluster Numbers}
+
+\section{Other Regression and Classifiers}
+
+\section{Results}
+
+
+\section{Conclusion}
+
+
+
+\end{document}
