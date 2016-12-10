@@ -282,16 +282,85 @@ We use the tool chain both for clustering in the time domain as described
 above to determine the class labels and weights of each trace and for
 learning the classification model. In addition, we use group k-fold cross
 validation procedure to find accuracy. 
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Regression_Tree}
+    \caption{Regression Tree: Results of applying regression tree algorithm on SnapBuddy}
+    \label{Regression_Tree}
+\end{figure}
+
+The another approach is to apply regression tree directly. Especially,
+we know that time is continuous domain. Therefore, we can naturally
+apply regression tree on our data sets. Figure \ref{Regression_Tree}
+shows the results of applying regression tree on SnapBuddy data set.
+As you may notice, on each leaf node, we have the predicted value for
+time. For example, if $image.OilFilter.filterPixels$ is called (the right child taken), 
+then the predicted time value is about 14.7 seconds which corresponds to
+traces which called $oilFilter$ function. In the case of decision tree classifier,
+the leaf node classifies the path to one of possible labels. 
+
+
 
 \section{Estimation of Cluster Numbers}
 
 \section{Other Regression and Classifiers}
 
 \section{Results}
+As described earlier, we are looking for a scalable and accurate model which should
+be able to explain the data given program internal function calls as features and time
+of trace execution as target function. We observe that decision tree classifier and
+regression tree give a reasonable explanation for the input data and have good
+accuracy and high scalability. We also consider the compactness of model in
+terms of height of tee. Table \ref{table7-1} shows the results of applying decision
+tree classifier on the applications and micro-benchmarks we have used in this project.
+It is worth nothing to mention that explaining the data with good accuracy is more
+important to us in comparison to less explanatory models with high accuracy. But, we
+get high accuracy using decision tree classifier. 
 
+\begin{table}[t]
+  \centering
+  \caption{Application and Micro-benchmark results for decision-tree discriminators learned
+    using decision tree. 
+    Legend: \textbf{\#M}: number of methods, \textbf{\#N:} number of traces,
+    \textbf{T}:\ computation time in seconds, \textbf{A}: accuracy, 
+    \textbf{H}: decision-tree height % denotes a time less than
+    %$0.1$ seconds.
+   }
+  \label{table7-1}
+  \begin{tabular}{ || l | r | r || r | r | r ||}
+    \hline
+    &       &    & \multicolumn{3}{c||}{Decision Tree}\\
+    ~~~~Application Name~~~~~~ & \# \textbf{M} & \#\textbf{N} & \textbf{T} & \textbf{A} & \textbf{H} \\ \hline
+     $Existing User Enumeration$ & 2 & 1000 & 0.01 & 100\% & 2  \\ \hline
+    $SnapBuddy$ & 160 & 439 & 0.01 & 100\% & 8  \\ \hline
+    $MSB0$ & 10 & 188 & 0.01 & 100\% & 7  \\ \hline
+    $RegE_{101}$ & 20 & 200 & 0.01 & 100\% & 13 \\ \hline
+    $RegE_{10011}$ & 150 & 1500 & 0.5 & 89.2\% & 44  \\ \hline
+    $RegE_{101011}$ & 200 & 2000 & 0.8 & 92.1\% & 50 \\ \hline
+    \end{tabular}
+\end{table}
 
 \section{Conclusion}
-
+In this project, we show that combination of program analysis and machine learning can help
+security analysts to find explanation for possible execution time difference in program
+control flow paths. Such explanation is useful to eliminate vulnerabilities to timing side-channels.
+We show our approaches with two real applications and micro-benchmarks. In particular, we show
+that clustering data in time domain (obtaining class labels) and classification of them using
+decision tree discriminant is a useful approach to explain time difference based on program
+internal features. We also show that regression tree ca be also useful to explain the data. In
+addition, we explain the results we get from other machine learning algorithm but they are
+less explainable. The challenges include finding the number of clusters and correlation
+of features in the data set. We use estimation of cluster numbers to find more accurate
+value for k in k-means algorithm, and we consider expert knowledge to select useful
+features among correlated ones. Possible extensions include considering the case such
+that order of function calls is important. So, we may need to learn graph instead of tree
+in this case. The another extension is to consider two approaches of classification with
+clustering or direction regression models. Even though time belong to continuous domain,
+and it naturally makes sense to apply regression tree, consider our problem, it seems that
+in some cases, classification with clustering capture relationships between features and
+time better. Especially, as regression tree splits upon a node in each step, we may loose
+some relationships between program internal features to each other by applying regression
+directly. However, we need to investigate more in this area to have concrete results.  
 
 
 \end{document}
