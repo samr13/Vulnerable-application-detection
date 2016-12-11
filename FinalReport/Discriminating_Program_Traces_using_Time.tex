@@ -110,7 +110,24 @@ For instance, a trace may have a label $\ell_1$ with probability $0.9$
 and label $\ell_2$ with probability $0.1$.
 
 \section{Motivation Example - existing user enumeration}
+In this section, timing side-channel vulnerabilities of a web application is discussed. Exploit was found in this application during credentials validation where there is a significant time difference among different scenarios.
 
+\vfill
+\begin{center}    
+  \includegraphics [width=5 in] {validationCheck}
+\end{center}
+\vfill
+  
+\subsubsection*{Explaining Timing Side-Channels with Decision Tree Learning.}
+Here if the user name is given wrong to the application, then it just checks the database and returns false in small amount of time (atmost 1s). If the user name is correct, then application executes a function which validates password where there is a vulnerability which differentiates the flow. There are two assumptions that can be made with vulnerabilities of this web application.
+
+\subsubsection{Assumption1: Different encryption methodologies }
+Here the password is encrypted and saved to the database. Lets assume the application uses 3 different hashing technologies and password saved in the database contains one encrypted password using a particular salt. Time difference is seen because the application do not know which salt is used for the given password. For a single encryption method, to loop over the whole database it takes around 1-2 secs. If first encryption methodology is not correct, then second salt is used for decryption of the given password and looped again with database. So if the password doesn't match for all three different salts, it takes around 5-6 seconds. If the password matches , the average time of time execution is 2-4 secs.
+
+\subsubsection{Assumption2: Decrypting password in database}
+Instead of encrypting the password which is given and checking with encrypted password, each password from database is decrypted and checked against the given password. This also leads to the time differentials. 
+\newline \newline
+Both the cases can be avoided by reducing the time complexity of the algorithm which validates the credentials. 
 
 \section{Motivation Example - SnapBuddy (social network)}
 In this section, we demonstrate another example to show that the tool can be useful in
