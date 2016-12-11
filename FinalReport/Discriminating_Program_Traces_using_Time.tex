@@ -303,8 +303,119 @@ the leaf node classifies the path to one of possible labels.
 
 \section{Estimation of Cluster Numbers}
 
+In order to apply K nearest neighbors classifiers we need to have a rough estimate of how many clusters can be form from the given dataset. Therefore, we choose DBSCAN to estimate the number of clusters. Density-based spatial clustering of applications with noise groups data samples by identifying core points and their reachable neighbors.
+
+The idea behind the algorithm of DBSCAN can be elaborated as the following:
+
+\begin{enumerate}
+    \item
+    Determining two parameters $\epsilon$ and the minimum number of samples required to form a cluster. In our implementation, we define $\epsilon=0.3$ and the number of minimum samples is 10.
+
+    \item
+    The algorithm scan each data sample that hasn't been marked unvisited, find $\epsilon-neighbors$ of this point, if the number of points reach the minimum baseline, a new cluster is formed. Otherwise, this point is marked as noise with label $-1$ in our implementation.
+
+    \item
+    If a point in $\epsilon-neighbors$ is also the core point of another cluster, we union these two clusters to form a new one.
+
+    \item
+    The above processes repeats until all data samples are visited and therefore, we get the dataset being clustered with different labels.
+\end{enumerate}
+
+    \includegraphics[scale=0.2]{MSB1_10_100.png}
+    \includegraphics[scale=0.2]{RegEx_20_10_1_101.png}
+
+    \includegraphics[scale=0.2]{RegEx_150_10_2_10011.png}
+    \includegraphics[scale=0.2]{RegEx_200_10_2_101011.png}
+
+Results and explanations:
+
+\begin{tabular}{ |p{2cm}||p{1.8cm}|p{1.8cm}|p{1.8cm}|p{1.8cm}| }
+ \hline
+ \multicolumn{5}{|c|}{DBSCAN Results} \\
+ \hline
+ Measurements & MSB1\_10 & RegEx\_20 &RegEx\_150 & RegEx\_200\\
+ \hline
+ Estimated number of clusters   & 9 & 6 & 51 & 69\\
+ Homogeneity & 0.499 & 0.333 &0.496 & 0.489\\
+ Completeness & 1.000 & 1.000 & 1.000 & 1.000\\
+ V-measure & 0.666 & 0.500 & 0.663 & 0.656\\
+ Adjusted Rand Index & 0.187 & 0.003 & 0.001 & 0.000\\
+ Silhouette Coefficient & 1.000 & 0.616 & 0.791 & 0.718\\
+ \hline
+\end{tabular}\\
+
+\begin{enumerate}
+
+    \item dataset
+
+    The applications that we collect data from are two micro-benchmark applications which are vulunerable to side-channels. As It takes different time for different function calls, the programs are potential to leak secrets. In this case, the inputs are a set of bit sequence of 0 and 1. Given the inputs, the programs will call functions which are determined by pattern of the benchmark:
+
+    \begin{enumerate}
+        \item
+        MSB: Only one function is called at each time. Therefore input data is sequence of 0 or 1 bits with 10 different function calls as features.
+
+        \item
+        Reg: For regular expression datset we are looking for patterns of several function calls each time. RegEx\_20, RegEx\_150 and RegEx\_200 in the above table are datasets with 20, 150 and 200 different function calls, looking for patterns 101, 10011 and 101011 respectively.
+
+    \end{enumerate}
+    \item Parameters
+
+    Homogeneity score explains the purity of data in clusters. Therefore, the higher homogeneity score is the better performance of clustering algorithm has. For the first three datasets, because the combination of functions is more complicated than MSB data, the homogeneity is not very high when features are simple. However, homogeneity grows as features increases.
+
+    Completeness score explains whether a cluster contains all the data points of a given class.
+
+    V-measure is the harmonic mean between homogeneity and completeness. A perfect labeling is both homogeneity and completeness and thus is 1.0.
+
+    Rand Index is very low here since the input matrix is sparse and didn’t consider the combination of functions as a feature. Therefore, it thinks samples in the same class are classified into different classes.
+
+    Silhouette Coefficient is the best when equals to 1 and the worst when equals to -1. Closed to 0 indicates there are overlapping clusters.
+
+\end{enumerate}
+
+
+
+
 \section{Other Regression and Classifiers}
 
+\begin{enumerate}
+    \item Regression
+
+    For linear regression, we split 80\% of each data into training set. By fitting the data in a regression model we get the following scores. The accuracy of MSB data is almost 1.0 since linear pattern is very obvious with only one function call at each time. The accuracy on regular expression dataset decrease obviously when model becomes complex.
+
+\begin{tabular}{ |p{2cm}||p{1.8cm}|p{1.8cm}|p{1.8cm}|p{1.8cm}| }
+ \hline
+ \multicolumn{5}{|c|}{Linear Regression Model} \\
+ \hline
+ Scores & MSB1\_10 & RegEx\_20 &RegEx\_150 & RegEx\_200\\
+ \hline
+ Variance Score   & 0.99 & 0.97 & -1.63e+19 & -2.22e+19\\
+ MSE & 2.28 & 4870613.93 & $2.26*10^{29}$ & $1.16*10^{30}$\\
+ \hline
+\end{tabular}\\
+
+    \item Classification
+
+    For classification problems we applied nearest neighbors, linear SVM, RBF SVM, decision tree, random forest, neural network, adaboosting and Naive bayes classifiers. The table below indicates that naive bayes, nearest neighbors and RBF SVM have the best performance.
+
+\begin{tabular}{ |p{2cm}||p{1.8cm}|p{1.8cm}|p{1.8cm}|p{1.8cm}| }
+ \hline
+ \multicolumn{5}{|c|}{Linear Regression Model} \\
+ \hline
+ Scores & MSB1\_10 & RegEx\_20 &RegEx\_150 & RegEx\_200\\
+ \hline
+ Nearest Neighbors   & 1.0 & 0.1 & 0.08 & 0.09\\
+ Linear SVM & 0.56 & 0.1 & 0.03 & 0.06\\
+ RBF SVM & 1.0 & 0.2 & 0.1 & 0.11\\
+ Decision Tree & 0.81 & 0.15 & 0.04 & 0.06\\
+ Random Forest & 0.98 & 0.17 & 0.08 & 0.06\\
+ Neural Net & 0.98 & 0.2 & 0.04 & 0.07\\
+ Adaboost & 0.98 & 0.2 & 0.03 & 0.06\\
+ Naive Bayes & 1.0 & 0.23 & 0.09 & 0.09\\
+ \hline
+\end{tabular}\\
+
+
+\end{enumerate}
 \section{Results}
 As described earlier, we are looking for a scalable and accurate model which should
 be able to explain the data given program internal function calls as features and time

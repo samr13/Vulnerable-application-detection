@@ -7,9 +7,9 @@ from sklearn.preprocessing import StandardScaler
 from scipy.sparse import csr_matrix
 
 # Comment here to change dataset, also the lenth of functions below
-# df = pd.read_csv("./CSV/RegEx_20_10_1_101.csv")
+df = pd.read_csv("./CSV/RegEx_20_10_1_101.csv")
 # df = pd.read_csv("./CSV/RegEx_150_10_2_10011.csv")
-df = pd.read_csv("./CSV/RegEx_200_10_2_101011.csv")
+# df = pd.read_csv("./CSV/RegEx_200_10_2_101011.csv")
 # df = pd.read_csv("./CSV/MSB1_10_100.csv")
 
 
@@ -24,10 +24,11 @@ labels_true = np.asarray(m_list)
 
 # At here change the length according to different dataset [21, 151, 201, 11]
 func_array = []
-for i in range(0, 201):
+for i in range(0, 21):
     func_array.append('f'+str(i))
 df_F = df[func_array]
 X = np.array(df_F)
+# print(df_F)
 
 # A = csr_matrix(X)
 # X = A.todense()

@@ -8,9 +8,9 @@ from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
 
 # df = pd.read_csv("./CSV/RegEx_20_10_1_101.csv")
-# df = pd.read_csv("./CSV/RegEx_150_10_2_10011.csv")
+df = pd.read_csv("./CSV/RegEx_150_10_2_10011.csv")
 # df = pd.read_csv("./CSV/RegEx_200_10_2_101011.csv")
-df = pd.read_csv("./CSV/MSB1_10_100.csv")
+# df = pd.read_csv("./CSV/MSB1_10_100.csv")
 
 train, test = train_test_split(df, train_size=0.8)
 
@@ -27,7 +27,7 @@ for i in train_Mean:
 Y = np.asarray(m_list)
 
 func_array = []
-for i in range(0, 11):
+for i in range(0, 151):
     func_array.append('f'+str(i))
 train_F = train[func_array]
 X = np.array(train_F)
@@ -45,7 +45,7 @@ for i in test_Mean:
 y_true = np.asarray(m_list)
 
 func_array = []
-for i in range(0, 11):
+for i in range(0, 151):
     func_array.append('f'+str(i))
 test_F = test[func_array]
 xtest = np.array(test_F)
@@ -56,7 +56,20 @@ score = regr.score(xtest, y_true)
 print("Variance Score:", score)
 pred = regr.predict(xtest)
 # The coefficients
-# print('Coefficients: \n', regr.coef_)
+print('Coefficients: \n', regr.coef_)
+print('Bias: ', regr.intercept_)
+
+# Print Formula
+formula = ""
+index = 0
+for i in regr.coef_:
+    if i>=0:
+        formula += '+'+str(i)+'f'+str(index)
+    else:
+        formula += str(i)+'f'+str(index)
+    index += 1
+
+print('formula', str(regr.intercept_)+formula)
 # diff = pred - y_true
 
 # The mean squared error
@@ -88,4 +101,4 @@ plt.title("MSB1_10_100")
 
 plt.legend(loc=4)
 
-plt.show()
+# plt.show()
