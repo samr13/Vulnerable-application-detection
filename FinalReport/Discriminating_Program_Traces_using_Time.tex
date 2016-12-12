@@ -89,9 +89,9 @@ same timing labels and what is different between traces with different labels. \
 2- As the time of execution is a continuous domain (time $\in$ $R$), we can
 naturally use regression trees to find discriminant features of the input
 program and explain the timing differences. \\
-Moreover, we compare these
-two approaches and explain which one can potentially give better discriminant. 
-Finally, we apply other classifier models and measure their accuracy and performance.
+As knowing cluster numbers are important part of our analysis, we apply DBSCAN algorithm
+to estimate cluster number. Moreover, we apply other classifier models and measure their
+performance.
 
 We present two case studies in identifying and debugging timing
 side-channel shown our tools to
@@ -110,26 +110,66 @@ For instance, a trace may have a label $\ell_1$ with probability $0.9$
 and label $\ell_2$ with probability $0.1$.
 
 \section{Motivation Example - existing user enumeration}
-In this section, timing side-channel vulnerabilities of a web application is discussed. Exploit was found in this application during credentials validation where there is a significant time difference among different scenarios.
+In this section, timing side-channel vulnerabilities of a web application is discussed. 
+Exploit was found in this application during credentials validation where there is a significant time difference among different scenarios. Figure \ref{user_enumeration-1} shows a sample
+authentication scenario where the authentication server checks whether the username
+is valid and password is correct. The code snippet shows a sample authentication program.
+Based on code, if the user exists in the system, it will check given password. Otherwise, it
+will be failed.  
 
-\vfill
-\begin{center}    
-  \includegraphics [width=5 in] {validationCheck}
-\end{center}
-\vfill
-  
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=1\textwidth]{User_Enumeration_1}
+    \caption{Authentication Scenario for a vulnerable web server}
+    \label{user_enumeration-1}
+\end{figure}
+
+\subsubsection*{Identifying a Timing Side-Channel with Clustering.}
+As an analyst, we issue the server with different username/password combinations. In an
+un-instrument version of the authentication server, we generate different valid and invalid
+username/password combinations and record execution time for each combination.
+Figure \ref{fig:astime} shows scatter plot of the server execution with different username/password 
+(each data point corresponds to a unique username/password). The running time is
+clustered into $2$ different groups using a standard $k$-means clustering algorithm (k=2). 
+This timing difference can indicate a possible side-channel. The scatter shows that for some 
+username/password, the download times were roughly $1$ seconds (Cluster\_0), whereas for
+some others they were roughly $5$ seconds (Cluster\_1).
+
+\begin{figure}[t]
+\centering
+\begin{minipage}[b]{0.5\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{User_Enumeration_2}
+  \caption{Cluster running times from the authentication server to produce labels. The scatter plot shows a differential corresponding to a possible timing side-channel.}
+  \label{fig:astime}
+\end{minipage}\hfill
+\begin{minipage}[b]{0.45\textwidth}
+  \centering
+  \includegraphics[width=0.6 \textwidth]{User_Enumeration_3}
+  \caption{Snippet of a decision-tree discriminant learned from different username/password checking traces using the timing labels from Figure~\ref{fig:astime}.}
+  \label{fig:asdectree}
+\end{minipage}
+\vspace{-1em}
+\end{figure}
+
 \subsubsection*{Explaining Timing Side-Channels with Decision Tree Learning.}
-Here if the user name is given wrong to the application, then it just checks the database and returns false in small amount of time (atmost 1s). If the user name is correct, then application executes a function which validates password where there is a vulnerability which differentiates the flow. There are two assumptions that can be made with vulnerabilities of this web application.
+Now, we want to explain the time differences based on functions inside the web server.
+For this explanation, we run instrumented version of the application with the same input
+as the un-instrumented one. The instrumented version will record function calls during the
+execution. We assign a label to all traces (each trace is a unique combination of username/password) from the clustering results of previous step. As a result, we generate new data set which includes function calls and labels. Note that each label (Cluster) is corresponding to a
+timing range. We use standard \emph{CART} decision tree learning
+algorithm to infer a decision tree that
+succinctly represents a discriminant
+using atomic predicates that characterize
+whether or not the trace invoked a particular method (shown in Figure~\ref{fig:asdectree}).
+This discriminant model explains that calling checkPass() method is the main reason for
+the timing differences. Using this explanation, we can see that the application calls checkPass
+for some username/password which take more time than for others. It means that for valid
+username it will call checkPass which takes time while for invalid username it will not call this
+function. So, the attackers can distinguish valid and invalid username by recording the time of execution.
+The possible fix is to call checkPass in the case the username does not exist. 
 
-\subsubsection{Assumption1: Different encryption methodologies }
-Here the password is encrypted and saved to the database. Lets assume the application uses 3 different hashing technologies and password saved in the database contains one encrypted password using a particular salt. Time difference is seen because the application do not know which salt is used for the given password. For a single encryption method, to loop over the whole database it takes around 1-2 secs. If first encryption methodology is not correct, then second salt is used for decryption of the given password and looped again with database. So if the password doesn't match for all three different salts, it takes around 5-6 seconds. If the password matches , the average time of time execution is 2-4 secs.
-
-\subsubsection{Assumption2: Decrypting password in database}
-Instead of encrypting the password which is given and checking with encrypted password, each password from database is decrypted and checked against the given password. This also leads to the time differentials. 
-\newline \newline
-Both the cases can be avoided by reducing the time complexity of the algorithm which validates the credentials. 
-
-\section{Motivation Example - SnapBuddy (social network)}
+\section{Motivation Example - SnapBuddy}
 In this section, we demonstrate another example to show that the tool can be useful in
 identifying timing side-channel vulnerabilities
 and suggesting ways to fix them.
@@ -150,7 +190,7 @@ other users.
 
 \subsubsection*{Identifying a Timing Side-Channel with Clustering.}
 As we mention, every user can issue download requests to the
-public profile page of other uses in the system. The public profile
+public profile page of other users in the system. The public profile
 includes the users' public information and their public profile page. 
 As an analyst, we record the time to download public pages of all users
 in the system. Figure~\ref{fig:sbtime} shows a scatter plot of the running times of
@@ -198,15 +238,11 @@ sequence of method calls.
   \caption{Snippet of a decision-tree discriminant learned from SnapBuddy traces using the timing labels from Figure~\ref{fig:sbtime}.}
   \label{fig:sbdectree}
 \end{minipage}
-\vspace{-2em}
+\vspace{-1em}
 \end{figure}
 
-Then tool uses the
-standard \emph{CART} decision tree learning
-algorithm to infer a decision tree that
-succinctly represents a discriminant
-using atomic predicates that characterize
-whether or not the trace invoked a particular method (shown in Figure~\ref{fig:sbdectree}).
+Figure~\ref{fig:sbdectree} shows part of discriminant model explains timing differences
+based on SnapBuddy functions. 
 For instance, the cluster representing the longest running time (around $15$ seconds) is
 discriminated by calling functions of \texttt{snapservice.model.Filter.filter} and 
 \texttt{image.OilFilter.filterPixels}, indicating that the two methods
@@ -226,10 +262,8 @@ to their picture. %To illustrate the filters, Figure~\ref{figure2-1}
 Note that the analyst running the tool did not need to
 know that the filters are important for causing this time differential, or even that
 they existed. The tool discovers them simply because the trace
-contains all method calls, and the decision tree learning algorithm
-produces a useful discriminant.
-
-A possible fix now suggests itself: make sure that the execution of
+contains all method calls. A possible fix now suggests itself:
+make sure that the execution of
 each type of filter takes the same amount of time.
 
 \section{Methodology}
@@ -286,18 +320,15 @@ trace. Please note that the tool can also handle the case where
 there is just one time measurement, and each trace belongs to a
 fix cluster. \\
 3. \smallskip\textit{data set of trace labels and weights.}
-Given that $step.1$ will assign labels on traces and $step.2$
+Given that the first step will assign labels on traces and the second step
 calculate the weight of the trace to belong to different labels,
 we can obtain the new data set which is the input for classification step. 
 We keep the function call features like the original input data set, but we
-find labels and weights for each trace as described in $step.2$ and $step.3$
+find labels and weights for each trace as described in the second and third steps
 and generate the data set as shown in this step for SnapBuddy. \\
 4. \smallskip\textit{Decision Tree Learning.}
 From a training set with this weighted labeling, we apply the weighted
-decision tree learning algorithm CART.
-We use the tool chain both for clustering in the time domain as described
-above to determine the class labels and weights of each trace and for
-learning the classification model. In addition, we use group k-fold cross
+decision tree learning algorithm CART. We use group k-fold cross
 validation procedure to find accuracy. 
 \begin{figure}[t]
     \centering
@@ -319,40 +350,37 @@ the leaf node classifies the path to one of possible labels.
 
 
 \section{Estimation of Cluster Numbers}
-
-In order to apply K nearest neighbors classifiers we need to have a rough estimate of how many clusters can be form from the given dataset. Therefore, we choose DBSCAN to estimate the number of clusters. Density-based spatial clustering of applications with noise groups data samples by identifying core points and their reachable neighbors.
-
+In order to apply classifiers with higher accuracy, in some applications, we need to have a rough estimation of how many clusters can be form in the given dataset. Therefore, we choose DBSCAN to estimate the number of clusters. Density-based spatial clustering of applications with noise groups data samples by identifying core points and their reachable neighbors.
 The idea behind the algorithm of DBSCAN can be elaborated as the following:
-
 \begin{enumerate}
     \item
     Determining two parameters $\epsilon$ and the minimum number of samples required to form a cluster. In our implementation, we define $\epsilon=0.3$ and the number of minimum samples is 10.
-
     \item
     The algorithm scan each data sample that hasn't been marked unvisited, find $\epsilon-neighbors$ of this point, if the number of points reach the minimum baseline, a new cluster is formed. Otherwise, this point is marked as noise with label $-1$ in our implementation.
-
     \item
     If a point in $\epsilon-neighbors$ is also the core point of another cluster, we union these two clusters to form a new one.
-
     \item
     The above processes repeats until all data samples are visited and therefore, we get the dataset being clustered with different labels.
 \end{enumerate}
-
-    \includegraphics[scale=0.2]{MSB1_10_100.png}
-    \includegraphics[scale=0.2]{RegEx_20_10_1_101.png}
-
-    \includegraphics[scale=0.2]{RegEx_150_10_2_10011.png}
-    \includegraphics[scale=0.2]{RegEx_200_10_2_101011.png}
-
-Results and explanations:
-
-\begin{tabular}{ |p{2cm}||p{1.8cm}|p{1.8cm}|p{1.8cm}|p{1.8cm}| }
+We apply the DBSCAN algorithm in our micro-benchmark applications. The applications are set of vulnerable programs to side-channels. It takes different time for different function calls, and the function calls are correlated with secret information. The input of the application is a set of bit sequence of 0 and 1. Given the inputs, the programs will call functions which are determined by pattern of the benchmark:
+1- \textbf{MSB} which calls only one function given every input. The function call is corresponding to the most significant set bit in the input. As a result, this application leaks the location the most significant 1-bit. This application contains 10 functions.
+2- \textbf{Reg} which looks for a given patterns in the input and calls several functions corresponds to the matched pattern in the input. RegEx\_20, RegEx\_150 and RegEx\_200 are applications with 20, 150 and 200 different function calls, looking for patterns 101, 10011 and 101011 respectively. This application will leak whether the pattern occurs in the input and if it is, it will leak the location of the pattern. 
+Table \ref{tabel5-1} shows the results of applying DBSCAN algorithm on the micro-benchmark.
+The result shows that the number of clusters may not be equal to number of function in the benchmarks
+even if each function has different and unique execution time.
+\begin{table}[t]
+  \centering
+    \caption{Estimation of cluster numbers using DBSCAN
+   }
+  \label{tabel5-1}
+\begin{tabular}
+{ |p{3.5cm}||p{1.6cm}|p{1.6cm}|p{1.6cm}|p{1.6cm}| }
  \hline
  \multicolumn{5}{|c|}{DBSCAN Results} \\
  \hline
  Measurements & MSB1\_10 & RegEx\_20 &RegEx\_150 & RegEx\_200\\
  \hline
- Estimated number of clusters   & 9 & 6 & 51 & 69\\
+ Est. Num. Clusters   & 9 & 6 & 51 & 69\\
  Homogeneity & 0.499 & 0.333 &0.496 & 0.489\\
  Completeness & 1.000 & 1.000 & 1.000 & 1.000\\
  V-measure & 0.666 & 0.500 & 0.663 & 0.656\\
@@ -360,46 +388,26 @@ Results and explanations:
  Silhouette Coefficient & 1.000 & 0.616 & 0.791 & 0.718\\
  \hline
 \end{tabular}\\
-
-\begin{enumerate}
-
-    \item dataset
-
-    The applications that we collect data from are two micro-benchmark applications which are vulunerable to side-channels. As It takes different time for different function calls, the programs are potential to leak secrets. In this case, the inputs are a set of bit sequence of 0 and 1. Given the inputs, the programs will call functions which are determined by pattern of the benchmark:
-
-    \begin{enumerate}
-        \item
-        MSB: Only one function is called at each time. Therefore input data is sequence of 0 or 1 bits with 10 different function calls as features.
-
-        \item
-        Reg: For regular expression datset we are looking for patterns of several function calls each time. RegEx\_20, RegEx\_150 and RegEx\_200 in the above table are datasets with 20, 150 and 200 different function calls, looking for patterns 101, 10011 and 101011 respectively.
-
-    \end{enumerate}
-    \item Parameters
-
-    Homogeneity score explains the purity of data in clusters. Therefore, the higher homogeneity score is the better performance of clustering algorithm has. For the first three datasets, because the combination of functions is more complicated than MSB data, the homogeneity is not very high when features are simple. However, homogeneity grows as features increases.
-
-    Completeness score explains whether a cluster contains all the data points of a given class.
-
-    V-measure is the harmonic mean between homogeneity and completeness. A perfect labeling is both homogeneity and completeness and thus is 1.0.
-
-    Rand Index is very low here since the input matrix is sparse and didn’t consider the combination of functions as a feature. Therefore, it thinks samples in the same class are classified into different classes.
-
-    Silhouette Coefficient is the best when equals to 1 and the worst when equals to -1. Closed to 0 indicates there are overlapping clusters.
-
-\end{enumerate}
-
-
-
+\end{table}
+Considering the measurements of Table \ref{tabel5-1}, the following explains the measurements: 
+\textit{Homogeneity} explains the purity of data in clusters. Therefore, the higher homogeneity score is the better performance of clustering algorithm has. \textit{Completeness} explains whether a cluster contains all the data points of a given class. \textit{V-measure} is the harmonic mean between homogeneity and completeness. A perfect labeling is 1.0. \textit{Rand Index} is very low here since the input matrix is sparse. Therefore, it thinks samples in the same class are classified into different classes.
+\textit{Silhouette} Coefficient is the highest for cluster numbers where the inter-cluster distances are the biggest and intra-cluster distance is the smallest.  
 
 \section{Other Regression and Classifiers}
 
 \begin{enumerate}
-    \item Regression
-
-    For linear regression, we split 80\% of each data into training set. By fitting the data in a regression model we get the following scores. The accuracy of MSB data is almost 1.0 since linear pattern is very obvious with only one function call at each time. The accuracy on regular expression dataset decrease obviously when model becomes complex.
-
-\begin{tabular}{ |p{2cm}||p{1.8cm}|p{1.8cm}|p{1.8cm}|p{1.8cm}| }
+    \item Regression.
+    For linear regression, we split 80\% of each data into training set. By fitting the data in a regression model we get the following scores. The accuracy of MSB data is almost 1.0 since linear pattern is very obvious with only one function call at each time. But for other data sets, the linear
+    regression could not explain data with high accuracy. Table \ref{tabel6-1} shows the performance of
+    linear regression on micro-benchmark applications. 
+    \item Classification.
+    For classification problems we applied nearest neighbors, linear SVM, RBF SVM, random forest, neural network, ada-boosting and Naive bayes classifiers. Table \ref{tabel6-2} indicates that naive bayes, nearest neighbors and RBF SVM have the best performance.
+\end{enumerate}
+\begin{table}[t]
+  \centering
+    \caption{Linear Regression model performance on micro-benchmark applications}
+  \label{tabel6-1}
+\begin{tabular}{ |p{3cm}||p{1.8cm}|p{1.8cm}|p{1.8cm}|p{1.8cm}| }
  \hline
  \multicolumn{5}{|c|}{Linear Regression Model} \\
  \hline
@@ -409,12 +417,13 @@ Results and explanations:
  MSE & 2.28 & 4870613.93 & $2.26*10^{29}$ & $1.16*10^{30}$\\
  \hline
 \end{tabular}\\
+\end{table}
 
-    \item Classification
-
-    For classification problems we applied nearest neighbors, linear SVM, RBF SVM, decision tree, random forest, neural network, adaboosting and Naive bayes classifiers. The table below indicates that naive bayes, nearest neighbors and RBF SVM have the best performance.
-
-\begin{tabular}{ |p{2cm}||p{1.8cm}|p{1.8cm}|p{1.8cm}|p{1.8cm}| }
+\begin{table}[t]
+  \centering
+    \caption{Performance of different classifiers on micro-benchmark applications}
+  \label{tabel6-2}
+\begin{tabular}{ |p{3cm}||p{1.8cm}|p{1.8cm}|p{1.8cm}|p{1.8cm}| }
  \hline
  \multicolumn{5}{|c|}{Linear Regression Model} \\
  \hline
@@ -423,32 +432,29 @@ Results and explanations:
  Nearest Neighbors   & 1.0 & 0.1 & 0.08 & 0.09\\
  Linear SVM & 0.56 & 0.1 & 0.03 & 0.06\\
  RBF SVM & 1.0 & 0.2 & 0.1 & 0.11\\
- Decision Tree & 0.81 & 0.15 & 0.04 & 0.06\\
  Random Forest & 0.98 & 0.17 & 0.08 & 0.06\\
  Neural Net & 0.98 & 0.2 & 0.04 & 0.07\\
  Adaboost & 0.98 & 0.2 & 0.03 & 0.06\\
  Naive Bayes & 1.0 & 0.23 & 0.09 & 0.09\\
  \hline
 \end{tabular}\\
+\end{table}
 
 
-\end{enumerate}
 \section{Results}
 As described earlier, we are looking for a scalable and accurate model which should
 be able to explain the data given program internal function calls as features and time
-of trace execution as target function. We observe that decision tree classifier and
+of trace execution as the target. We observe that decision tree classifier and
 regression tree give a reasonable explanation for the input data and have good
 accuracy and high scalability. We also consider the compactness of model in
 terms of height of tee. Table \ref{table7-1} shows the results of applying decision
 tree classifier on the applications and micro-benchmarks we have used in this project.
 It is worth nothing to mention that explaining the data with good accuracy is more
-important to us in comparison to less explanatory models with high accuracy. But, we
-get high accuracy using decision tree classifier. 
+important to us in comparison to less explanatory models with high accuracy.
 
 \begin{table}[t]
   \centering
-  \caption{Application and Micro-benchmark results for decision-tree discriminators learned
-    using decision tree. 
+  \caption{Application and Micro-benchmark results for decision-tree discriminators. 
     Legend: \textbf{\#M}: number of methods, \textbf{\#N:} number of traces,
     \textbf{T}:\ computation time in seconds, \textbf{A}: accuracy, 
     \textbf{H}: decision-tree height % denotes a time less than
@@ -471,24 +477,12 @@ get high accuracy using decision tree classifier.
 \section{Conclusion}
 In this project, we show that combination of program analysis and machine learning can help
 security analysts to find explanation for possible execution time difference in program
-control flow paths. Such explanation is useful to eliminate vulnerabilities to timing side-channels.
-We show our approaches with two real applications and micro-benchmarks. In particular, we show
-that clustering data in time domain (obtaining class labels) and classification of them using
-decision tree discriminant is a useful approach to explain time difference based on program
-internal features. We also show that regression tree ca be also useful to explain the data. In
-addition, we explain the results we get from other machine learning algorithm but they are
-less explainable. The challenges include finding the number of clusters and correlation
-of features in the data set. We use estimation of cluster numbers to find more accurate
-value for k in k-means algorithm, and we consider expert knowledge to select useful
-features among correlated ones. Possible extensions include considering the case such
-that order of function calls is important. So, we may need to learn graph instead of tree
-in this case. The another extension is to consider two approaches of classification with
-clustering or direction regression models. Even though time belong to continuous domain,
-and it naturally makes sense to apply regression tree, consider our problem, it seems that
-in some cases, classification with clustering capture relationships between features and
-time better. Especially, as regression tree splits upon a node in each step, we may loose
-some relationships between program internal features to each other by applying regression
-directly. However, we need to investigate more in this area to have concrete results.  
-
+control flow paths. We show our approaches with two real applications and micro-benchmarks.
+In particular, we show that clustering data in time domain (obtaining class labels) and classification
+of them using decision tree discriminant is a useful approach to explain time difference.
+We also show that regression tree ca be also useful to explain the timing differences. 
+One challenge includes finding the number of clusters in the data set. We use DBSCAN to
+estimate cluster numbers. We also provide the performance of other machine learning algorithm but they are less explainable. Possible extensions include considering the case such
+that order of function calls is important. The another extension is to compare two approaches: (1) clustering and then classification, (2): direction regression models.
 
 \end{document}
